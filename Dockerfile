@@ -1,12 +1,10 @@
 FROM python:latest
 
-WORKDIR /usr/agent
+WORKDIR /app 
 
-COPY requirements.txt . 
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install -r requirements.txt
-# copy the content of the local src directory to the working directory
-COPY src/ .
+COPY . . 
 
-# command to run on container start
-CMD ["python", "main.py"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0"]

@@ -1,31 +1,58 @@
 version: "3.9"
-name: "road_vision"
+name: "road_vision__database"
 
 services:
-  mqtt:
-    image: eclipse-mosquitto
-    container_name: mqtt
-    volumes:
-      - ./mosquitto:/mosquitto 
-    ports:
-      - "1883:1883" 
-      - "9001:9001" 
-    networks:
-      - mqtt_network
-
-  fake_agent:
-    container_name: agent
-    build: ../ 
-    depends_on:
-      - mqtt 
+  postgres_db:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
     environment:
-      MQTT_BROKER_HOST: "mqtt" 
-      MQTT_BROKER_PORT: 1883
-      MQTT_TOPIC: "agent_data_topic" 
-      DELAY: 0.1 
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: test_db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./db/structure.sql:/docker-entrypoint-initdb.d/structure.sql
+    ports:
+      - "5432:5432"
     networks:
-      - mqtt_network
+      - db_network
+
+  pgadmin:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    networks:
+      - db_network
+
+  store:
+    container_name: store
+    build: ..
+    depends_on:
+      - postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: test_db
+      POSTGRES_HOST: postgres_db
+      POSTGRES_PORT: 5432
+    ports:
+      - "8000:8000"
+    networks:
+      - db_network
 
 networks:
-  mqtt_network:
+  db_network:
     driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin-data:
